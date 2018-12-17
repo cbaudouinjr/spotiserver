@@ -4,6 +4,7 @@ import spotipy
 import itertools
 import threading
 import time
+import random
 from heapq import *
 from flask import Flask, request, Response
 from spotipy import util
@@ -136,11 +137,22 @@ def _request_track(track, listener):
         request_map[track_id] = entry
         total_requests += 1
         heappush(request_list, entry)
-        logging.log(level=logging.INFO, msg="Added track: " + request.args['track'] + " to the request list")
+        logging.log(level=logging.INFO, msg="Added track: " + track['name'] + " to the request list")
         return Response(status=ACCEPTED)
     else:
         logging.log(level=logging.WARN, msg="Not adding song " + request.args['track'] + ": flagged as explicit")
         return Response(status=EXPLICIT)
+
+
+def _get_track_recommendations(sp):
+    playlist_data = sp.user_playlist(user=username, playlist_id=playlist)
+    track_list_dict = playlist_data['tracks']['items']
+    track_list = []
+    index = 0
+    for i in range(0, 5):
+        track_index = random.randint(0, len(track_list_dict) - 1)
+        track_list.append(track_list_dict[track_index]['track']['id'])
+    return sp.recommendations(seed_tracks=track_list)
 
 
 def playlist_manager():
@@ -153,7 +165,19 @@ def playlist_manager():
             song_to_play = request_list.pop()
             sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
             logging.log(level=logging.INFO, msg="Added a track to the playlist")
-        time.sleep(300)
+        else:
+            # pick a song from the recommendations list seeded by our already played songs
+            recommendations_list = _get_track_recommendations(sp)
+            track_list = recommendations_list['tracks']
+            track_index_to_pick = random.randint(0, len(track_list) - 1)
+            track_to_add = track_list[track_index_to_pick]
+            if block_explicit and track_to_add['explicit']:
+                while track_to_add['explicit']:
+                    track_index_to_pick = random.randint(0, len(track_list) - 1)
+                    track_to_add = track_list[track_index_to_pick]
+            sp.user_playlist_add_tracks(username, playlist, [track_to_add['id']])
+            logging.log(level=logging.INFO, msg="Added track: " + track_to_add['name'] + " from recommendations")
+        time.sleep(150)
 
 
 playlist_manager_thread = threading.Thread(target=playlist_manager)
