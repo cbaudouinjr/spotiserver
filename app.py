@@ -98,7 +98,6 @@ def process_request():
         else:
             # new listener, they can request anything
             logging.log(level=logging.INFO, msg="New listener: " + listener)
-            requesters[listener] = 1
             track = request.args['track']
             query = 'track:' + track
             if 'artist' in request.args:
@@ -106,7 +105,13 @@ def process_request():
                 query = query + ' AND artist:' + artist
             search_results = sp.search(query, 10, type='track')
             tracks_found_from_search = search_results['tracks']['items']
-            return _request_track(tracks_found_from_search[0], listener)
+            if len(tracks_found_from_search) > 0:
+                requesters[listener] = 1
+                return _request_track(tracks_found_from_search[0], listener)
+            else:
+                # track not found
+                logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
+                return Response(status=NOT_FOUND)
     else:
         # critical authentication error
         logging.log(level=logging.ERROR, msg="Spotify authentication failed!")
