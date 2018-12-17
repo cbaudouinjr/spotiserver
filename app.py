@@ -153,7 +153,7 @@ def playlist_manager():
             song_to_play = request_list.pop()
             sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
             logging.log(level=logging.INFO, msg="Added a track to the playlist")
-        time.sleep(120)
+        time.sleep(300)
 
 
 playlist_manager_thread = threading.Thread(target=playlist_manager)
