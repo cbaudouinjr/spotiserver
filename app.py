@@ -2,6 +2,8 @@ import logging
 import configparser
 import spotipy
 import itertools
+import threading
+import time
 from heapq import *
 from flask import Flask, request, Response
 from spotipy import util
@@ -36,9 +38,10 @@ app = Flask(__name__)
 
 token = None
 
+
 @app.route('/')
 def process_request():
-    global total_requests
+    global total_requests, token
 
     token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
     sp = spotipy.Spotify(auth=token)
@@ -67,18 +70,21 @@ def process_request():
                             else:
                                 # track exists but listener never requested it before
                                 listener_requests_for_track = 0
+                            total_requests_for_track = abs(request_map[requested_track['id']][0])
+                            if listener_requests_for_track / total_requests_for_track <= REQUEST_THRESHOLD:
+                                # listener may request the track to be played.
+                                requesters[listener] += 1
+                                return _request_track(tracks_found_from_search[0], listener)
+                            else:
+                                # too many requests right now for this listener
+                                logging.log(level=logging.INFO,
+                                            msg="Too many requests made by " + request.args['listener'])
+                                return Response(status=NOT_ACCEPTED)
                         else:
                             # never requested track from a listener who's already requested a different track
-                            listener_requests_for_track = 0
-                        total_requests_for_track = request_map[requested_track['id']][0]
-                        if listener_requests_for_track/abs(total_requests_for_track) <= REQUEST_THRESHOLD:
                             # listener may request the track to be played.
                             requesters[listener] += 1
                             return _request_track(tracks_found_from_search[0], listener)
-                        else:
-                            # too many requests right now for this listener
-                            logging.log(level=logging.INFO, msg="Too many requests made by " + request.args['listener'])
-                            return Response(status=NOT_ACCEPTED)
                     else:
                         # track not found
                         logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
@@ -136,6 +142,22 @@ def _request_track(track, listener):
         logging.log(level=logging.WARN, msg="Not adding song " + request.args['track'] + ": flagged as explicit")
         return Response(status=EXPLICIT)
 
+
+def playlist_manager():
+    while True:
+        global token
+        token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
+        sp = spotipy.Spotify(auth=token)
+
+        if request_list:
+            song_to_play = request_list.pop()
+            sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
+            logging.log(level=logging.INFO, msg="Added a track to the playlist")
+        time.sleep(120)
+
+
+playlist_manager_thread = threading.Thread(target=playlist_manager)
+playlist_manager_thread.start()
 
 if __name__ == '__main__':
     app.run()
