@@ -11,7 +11,8 @@ from spotipy import util
 
 request_map = {}
 request_list = []
-requesters = {}
+listener_list = {}
+played_songs = {}
 total_requests = 0
 
 counter = itertools.count()
@@ -41,6 +42,7 @@ app = Flask(__name__)
 token = None
 
 
+# Process request info from endpoint
 @app.route('/')
 def process_request():
     global total_requests, token
@@ -50,8 +52,8 @@ def process_request():
     if token:
         # listener most not own more than the requests_threshold percent of total requests
         listener = request.args['listener']
-        if listener in requesters:
-            listener_requests = requesters[listener]
+        if listener in listener_list:
+            listener_requests = listener_list[listener]
             percent_of_total_requests = listener_requests/total_requests
             if percent_of_total_requests <= REQUEST_THRESHOLD:
                     track = request.args['track']
@@ -75,7 +77,7 @@ def process_request():
                             total_requests_for_track = abs(request_map[requested_track['id']][0])
                             if listener_requests_for_track / total_requests_for_track <= REQUEST_THRESHOLD:
                                 # listener may request the track to be played.
-                                requesters[listener] += 1
+                                listener_list[listener] += 1
                                 return _request_track(tracks_found_from_search[0], listener)
                             else:
                                 # too many requests right now for this listener
@@ -85,7 +87,7 @@ def process_request():
                         else:
                             # never requested track from a listener who's already requested a different track
                             # listener may request the track to be played.
-                            requesters[listener] += 1
+                            listener_list[listener] += 1
                             return _request_track(tracks_found_from_search[0], listener)
                     else:
                         # track not found
@@ -106,7 +108,7 @@ def process_request():
             search_results = sp.search(query, 10, type='track')
             tracks_found_from_search = search_results['tracks']['items']
             if len(tracks_found_from_search) > 0:
-                requesters[listener] = 1
+                listener_list[listener] = 1
                 return _request_track(tracks_found_from_search[0], listener)
             else:
                 # track not found
@@ -118,12 +120,13 @@ def process_request():
         return Response(status=ERROR)
 
 
+# Adds a track to request list iff song obeys explicit flag
 def _request_track(track, listener):
-    # check if track is explicit
     global total_requests, request_list, request_map
     track_is_explicit = track['explicit']
     track_requesters = {}
 
+    # check if track is explicit
     if not track_is_explicit or not block_explicit:
         # A track's value is represented as [votes, count, trackID, {track_requesters}]
         track_id = track['id']
@@ -150,6 +153,7 @@ def _request_track(track, listener):
         return Response(status=EXPLICIT)
 
 
+# Gets track recommendations for a random song to pick if no requests are in queue
 def _get_track_recommendations(sp):
     playlist_data = sp.user_playlist(user=username, playlist_id=playlist)
     track_list_dict = playlist_data['tracks']['items']
@@ -160,17 +164,21 @@ def _get_track_recommendations(sp):
     return sp.recommendations(seed_tracks=track_list)
 
 
+# Removes listener votes associated with a song
 def _reset_listener_votes(track):
     global total_requests
 
+    # Subtracts the number of listener's requests for a song from the total number of requests a listener has made
+    # request_map[track][3] = requests made for a particular song
     for listener in request_map[track][3]:
         listener_votes = request_map[track][3][listener]
-        requesters[listener] -= listener_votes
-        if requesters[listener] == 0:
-            requesters.pop(listener)
+        listener_list[listener] -= listener_votes
+        if listener_list[listener] == 0:
+            listener_list.pop(listener)
         total_requests -= listener_votes
 
 
+# Engine that manages the selection of tracks
 def playlist_manager():
     while True:
         global token
