@@ -9,6 +9,8 @@ from heapq import *
 from flask import Flask, request, Response
 from spotipy import util
 
+is_running = False
+taking_requests = True
 request_map = {}
 request_list = []
 listener_list = {}
@@ -26,6 +28,7 @@ REQUEST_THRESHOLD = 0.5
 CYCLE_TIME = 150
 
 logging.basicConfig(level=logging.INFO)
+logging.log(level=logging.INFO, msg="Spotiserver is ready.")
 
 config = configparser.RawConfigParser()
 config.read('config.ini')
@@ -45,83 +48,129 @@ token = None
 # Process request info from endpoint
 @app.route('/')
 def process_request():
-    global total_requests, token
+    if is_running and taking_requests:
 
-    token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
-    sp = spotipy.Spotify(auth=token)
-    if token:
-        # listener most not own more than the requests_threshold percent of total requests
-        listener = request.args['listener']
-        if listener in listener_list:
-            listener_requests = listener_list[listener]
-            percent_of_total_requests = listener_requests/total_requests
-            if percent_of_total_requests <= REQUEST_THRESHOLD:
-                    track = request.args['track']
-                    query = 'track:' + track
-                    if 'artist' in request.args:
-                        artist = request.args['artist']
-                        query = query + ' AND artist:' + artist
-                    search_results = sp.search(query, 10, type='track')
-                    tracks_found_from_search = search_results['tracks']['items']
-                    if len(tracks_found_from_search) > 0:
-                        requested_track = tracks_found_from_search[0]
-                        # listener must not own more than the requests_threshold percent of total requests for a
-                        if requested_track['id'] in request_map:
-                            track_requesters = request_map[requested_track['id']][3]
-                            if listener in track_requesters:
-                                # both track and listener exist
-                                listener_requests_for_track = request_map[requested_track['id']][3][listener]
+        global total_requests, token
+
+        token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
+        sp = spotipy.Spotify(auth=token)
+        if token:
+            # listener most not own more than the requests_threshold percent of total requests
+            listener = request.args['listener']
+            if listener in listener_list:
+                listener_requests = listener_list[listener]
+                percent_of_total_requests = listener_requests/total_requests
+                if percent_of_total_requests <= REQUEST_THRESHOLD:
+                        track = request.args['track']
+                        query = 'track:' + track
+                        if 'artist' in request.args:
+                            artist = request.args['artist']
+                            query = query + ' AND artist:' + artist
+                        search_results = sp.search(query, 10, type='track')
+                        tracks_found_from_search = search_results['tracks']['items']
+                        if len(tracks_found_from_search) > 0:
+                            requested_track = tracks_found_from_search[0]
+                            # listener must not own more than the requests_threshold percent of total requests for a
+                            if requested_track['id'] in request_map:
+                                track_requesters = request_map[requested_track['id']][3]
+                                if listener in track_requesters:
+                                    # both track and listener exist
+                                    listener_requests_for_track = request_map[requested_track['id']][3][listener]
+                                else:
+                                    # track exists but listener never requested it before
+                                    listener_requests_for_track = 0
+                                total_requests_for_track = abs(request_map[requested_track['id']][0])
+                                if listener_requests_for_track / total_requests_for_track <= REQUEST_THRESHOLD:
+                                    # listener may request the track to be played.
+                                    listener_list[listener] += 1
+                                    return _add_track_to_request_list(tracks_found_from_search[0], listener)
+                                else:
+                                    # too many requests right now for this listener
+                                    logging.log(level=logging.INFO,
+                                                msg="Too many requests made by " + request.args['listener'])
+                                    return Response(status=NOT_ACCEPTED)
                             else:
-                                # track exists but listener never requested it before
-                                listener_requests_for_track = 0
-                            total_requests_for_track = abs(request_map[requested_track['id']][0])
-                            if listener_requests_for_track / total_requests_for_track <= REQUEST_THRESHOLD:
+                                # never requested track from a listener who's already requested a different track
                                 # listener may request the track to be played.
                                 listener_list[listener] += 1
-                                return _request_track(tracks_found_from_search[0], listener)
-                            else:
-                                # too many requests right now for this listener
-                                logging.log(level=logging.INFO,
-                                            msg="Too many requests made by " + request.args['listener'])
-                                return Response(status=NOT_ACCEPTED)
+                                return _add_track_to_request_list(tracks_found_from_search[0], listener)
                         else:
-                            # never requested track from a listener who's already requested a different track
-                            # listener may request the track to be played.
-                            listener_list[listener] += 1
-                            return _request_track(tracks_found_from_search[0], listener)
-                    else:
-                        # track not found
-                        logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
-                        return Response(status=NOT_FOUND)
+                            # track not found
+                            logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
+                            return Response(status=NOT_FOUND)
+                else:
+                    # too many requests right now for this listener
+                    logging.log(level=logging.INFO, msg="Too many requests made by " + request.args['listener'])
+                    return Response(status=NOT_ACCEPTED)
             else:
-                # too many requests right now for this listener
-                logging.log(level=logging.INFO, msg="Too many requests made by " + request.args['listener'])
-                return Response(status=NOT_ACCEPTED)
+                # new listener, they can request anything
+                logging.log(level=logging.INFO, msg="New listener: " + listener)
+                track = request.args['track']
+                query = 'track:' + track
+                if 'artist' in request.args:
+                    artist = request.args['artist']
+                    query = query + ' AND artist:' + artist
+                search_results = sp.search(query, 10, type='track')
+                tracks_found_from_search = search_results['tracks']['items']
+                if len(tracks_found_from_search) > 0:
+                    listener_list[listener] = 1
+                    return _add_track_to_request_list(tracks_found_from_search[0], listener)
+                else:
+                    # track not found
+                    logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
+                    return Response(status=NOT_FOUND)
         else:
-            # new listener, they can request anything
-            logging.log(level=logging.INFO, msg="New listener: " + listener)
-            track = request.args['track']
-            query = 'track:' + track
-            if 'artist' in request.args:
-                artist = request.args['artist']
-                query = query + ' AND artist:' + artist
-            search_results = sp.search(query, 10, type='track')
-            tracks_found_from_search = search_results['tracks']['items']
-            if len(tracks_found_from_search) > 0:
-                listener_list[listener] = 1
-                return _request_track(tracks_found_from_search[0], listener)
-            else:
-                # track not found
-                logging.log(level=logging.INFO, msg="No tracks found for: " + request.args['track'])
-                return Response(status=NOT_FOUND)
+            # critical authentication error
+            logging.log(level=logging.ERROR, msg="Spotify authentication failed!")
+            return Response(status=ERROR)
     else:
-        # critical authentication error
-        logging.log(level=logging.ERROR, msg="Spotify authentication failed!")
-        return Response(status=ERROR)
+        logging.log(level=logging.INFO, msg="Ignoring requests, currently not accepting requests")
+        return Response(status=NOT_ACCEPTED)
+
+
+@app.route('/start')
+def start_app():
+    global is_running
+
+    logging.log(level=logging.INFO, msg="Received start signal; Spotiserver running")
+    is_running = True
+    return Response(status=ACCEPTED)
+
+
+@app.route('/autopilot')
+def autopilot():
+    global is_running, taking_requests
+
+    if is_running:
+        logging.log(level=logging.INFO, msg="Received autopilot signal; no longer accepting requests")
+        taking_requests = False
+
+    return Response(status=ACCEPTED)
+
+
+@app.route('/resume')
+def resume_requests():
+    global is_running, taking_requests
+
+    if is_running:
+        logging.log(level=logging.INFO, msg="Received autopilot disable signal; accepting requests")
+        taking_requests = True
+
+    return Response(status=ACCEPTED)
+
+
+@app.route('/stop')
+def stop_app():
+    global is_running
+
+    logging.log(level=logging.INFO, msg="Received stop signal; Spotiserver stopped")
+    is_running = False
+
+    return Response(status=ACCEPTED)
 
 
 # Adds a track to request list iff song obeys explicit flag
-def _request_track(track, listener):
+def _add_track_to_request_list(track, listener):
     global total_requests, request_list, request_map
     track_is_explicit = track['explicit']
     track_requesters = {}
@@ -181,27 +230,29 @@ def _reset_listener_votes(track):
 # Engine that manages the selection of tracks
 def playlist_manager():
     while True:
-        global token
-        token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
-        sp = spotipy.Spotify(auth=token)
+        if is_running:
+            print("running")
+            global token
+            token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
+            sp = spotipy.Spotify(auth=token)
 
-        if request_list:
-            song_to_play = request_list.pop()
-            sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
-            _reset_listener_votes(song_to_play[2])
-            logging.log(level=logging.INFO, msg="Added a track to the playlist")
-        else:
-            # pick a song from the recommendations list seeded by our already played songs
-            recommendations_list = _get_track_recommendations(sp)
-            track_list = recommendations_list['tracks']
-            track_index_to_pick = random.randint(0, len(track_list) - 1)
-            track_to_add = track_list[track_index_to_pick]
-            while track_to_add['explicit'] and block_explicit:
+            if request_list and taking_requests:
+                song_to_play = request_list.pop()
+                sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
+                _reset_listener_votes(song_to_play[2])
+                logging.log(level=logging.INFO, msg="Added a track to the playlist")
+            else:
+                # pick a song from the recommendations list seeded by our already played songs
+                recommendations_list = _get_track_recommendations(sp)
+                track_list = recommendations_list['tracks']
                 track_index_to_pick = random.randint(0, len(track_list) - 1)
                 track_to_add = track_list[track_index_to_pick]
-            sp.user_playlist_add_tracks(username, playlist, [track_to_add['id']])
-            logging.log(level=logging.INFO, msg="Added track: " + track_to_add['name'] + " from recommendations")
-        time.sleep(CYCLE_TIME)
+                while track_to_add['explicit'] and block_explicit:
+                    track_index_to_pick = random.randint(0, len(track_list) - 1)
+                    track_to_add = track_list[track_index_to_pick]
+                sp.user_playlist_add_tracks(username, playlist, [track_to_add['id']])
+                logging.log(level=logging.INFO, msg="Added track: " + track_to_add['name'] + " from recommendations")
+            time.sleep(CYCLE_TIME)
 
 
 playlist_manager_thread = threading.Thread(target=playlist_manager)
