@@ -19,11 +19,14 @@ total_requests = 0
 
 counter = itertools.count()
 REMOVED = '<removed-track>'
+
 ACCEPTED = 202
 NOT_ACCEPTED = 406
+DISABLED = 407
 EXPLICIT = 405
 NOT_FOUND = 404
 ERROR = 500
+
 REQUEST_THRESHOLD = 0.5
 CYCLE_TIME = 150
 
@@ -125,7 +128,7 @@ def process_request():
             return Response(status=ERROR)
     else:
         logging.log(level=logging.INFO, msg="Ignoring requests, currently not accepting requests")
-        return Response(status=NOT_ACCEPTED)
+        return Response(status=DISABLED)
 
 
 @app.route('/start')
