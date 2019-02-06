@@ -83,6 +83,8 @@ def process_request():
             _accept_track(track, listener)
             logging.log(level=logging.INFO, msg="Added track: " + track['name'] + " to the request list")
             return Response(status=ACCEPTED)
+    else:
+        return Response(status=DISABLED)
 
 
 def _listener_request_below_total_threshold(listener):
