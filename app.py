@@ -1,5 +1,7 @@
 import logging
 import configparser
+import math
+
 import spotipy
 import itertools
 import threading
@@ -28,7 +30,6 @@ NOT_FOUND = 404
 ERROR = 500
 
 REQUEST_THRESHOLD = 0.5
-CYCLE_TIME = 150
 
 logging.basicConfig(level=logging.INFO)
 logging.log(level=logging.INFO, msg="Spotiserver is ready.")
@@ -84,7 +85,7 @@ def process_request():
 
             # We're good! We can accept the track
             _accept_track(track, listener)
-            logging.log(level=logging.INFO, msg="Added track: " + track['name'] + " to the request list")
+            logging.log(level=logging.INFO, msg="Received track: " + track['name'] + " to the request list")
             return Response(status=ACCEPTED)
     else:
         return Response(status=DISABLED)
@@ -207,7 +208,7 @@ def _accept_track(track, listener):
         listener_request_count[listener] = 1
 
     # python uses a min-heap, workaround: negative numbers
-    entry = [existing_votes - 1, count, track['id'], track_requesters]
+    entry = [existing_votes - 1, count, track['id'], track_requesters, track['duration_ms']]
     request_map[track_id] = entry
     total_requests += 1
     heappush(request_list, entry)
@@ -226,6 +227,12 @@ def _get_track_recommendations(sp):
         track_index = random.randint(0, len(track_list_dict) - 1)
         track_list.append(track_list_dict[track_index]['track']['id'])
     return sp.recommendations(seed_tracks=track_list)
+
+
+def _convert_miliseconds_to_seconds(miliseconds):
+    seconds = (miliseconds/1000)
+    seconds = int(math.ceil(seconds))
+    return seconds
 
 
 # Removes listener votes associated with a song
@@ -249,9 +256,11 @@ def playlist_manager():
             global token
             token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
             sp = spotipy.Spotify(auth=token)
+            length_of_song = 120
 
             if request_list and taking_requests:
                 song_to_play = request_list.pop()
+                length_of_song = _convert_miliseconds_to_seconds(song_to_play[4])
                 sp.user_playlist_add_tracks(username, playlist, [song_to_play[2]])
                 _reset_listener_votes(song_to_play[2])
                 logging.log(level=logging.INFO, msg="Added a track to the playlist")
@@ -264,9 +273,10 @@ def playlist_manager():
                 while track_to_add['explicit'] and block_explicit:
                     track_index_to_pick = random.randint(0, len(track_list) - 1)
                     track_to_add = track_list[track_index_to_pick]
+                length_of_song = _convert_miliseconds_to_seconds(track_to_add['duration_ms'])
                 sp.user_playlist_add_tracks(username, playlist, [track_to_add['id']])
                 logging.log(level=logging.INFO, msg="Added track: " + track_to_add['name'] + " from recommendations")
-            time.sleep(CYCLE_TIME)
+            time.sleep(length_of_song - 5)  # 5 seconds of buffer
 
 
 playlist_manager_thread = threading.Thread(target=playlist_manager)
