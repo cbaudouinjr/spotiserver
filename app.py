@@ -41,11 +41,14 @@ oauth_scope = config['SPOTIFY']['OAUTH_SCOPE']
 oauth_redirect = config['SPOTIFY']['OAUTH_REDIRECT']
 username = config['SPOTIFY']['SPOTIFY_USERNAME']
 playlist = config['SPOTIFY']['SPOTIFY_PLAYLIST_ID']
+recommended_playlist_username = config['SPOTIFY']['RECOMMENDED_PLAYLIST_USERNAME']
+recommended_playlist_id = config['SPOTIFY']['RECOMMENDED_PLAYLIST_ID']
 block_explicit = config['SPOTIFY']['BLOCK_EXPLICIT']
 
 app = Flask(__name__)
 
 token = None
+
 
 @app.route('/')
 def process_request():
@@ -212,7 +215,11 @@ def _accept_track(track, listener):
 
 # Gets track recommendations for a random song to pick if no requests are in queue
 def _get_track_recommendations(sp):
-    playlist_data = sp.user_playlist(user=username, playlist_id=playlist)
+    if recommended_playlist_id is "" or recommended_playlist_username is "":
+        playlist_data = sp.user_playlist(user=username, playlist_id=playlist)
+    else:
+        logging.log(level=logging.INFO, msg="Taking seed from specific playlist")
+        playlist_data = sp.user_playlist(user=recommended_playlist_username, playlist_id=recommended_playlist_id)
     track_list_dict = playlist_data['tracks']['items']
     track_list = []
     for i in range(0, 5):
