@@ -8,4 +8,4 @@ This application is built with a hackathon-sized event in mind. Spotiserver solv
 - Chooses music to add to playlist to add variety
 - Prevents one attendee from spamming request list
 ## Development
-All development work will live on the develop branch. Spotiserver is currently in the early stages of development and when ready will be merged into master.
+All development work will live branched off the develop branch. Any new feature should be created on it's own branch with a PR submitted to develop for review. Spotiserver is currently in the early stages of development and when ready will be merged into master.
