@@ -108,7 +108,7 @@ def _listener_request_below_total_threshold(listener):
 def _listener_can_upvote_song(listener, track):
     dict_track = request_map.get(track['id'])
 
-    if dict_track != None:
+    if dict_track is not None:
         track_requesters = dict_track[3]
         if listener in track_requesters:
             listener_requests_for_track = request_map[track['id']][3][listener]
@@ -223,10 +223,14 @@ def _get_track_recommendations(sp):
         playlist_data = sp.user_playlist(user=recommended_playlist_username, playlist_id=recommended_playlist_id)
     track_list_dict = playlist_data['tracks']['items']
     track_list = []
-    for i in range(0, 5):
+    artist_list = []
+    for i in range(0, 0):
         track_index = random.randint(0, len(track_list_dict) - 1)
         track_list.append(track_list_dict[track_index]['track']['id'])
-    return sp.recommendations(seed_tracks=track_list)
+    for i in range(0, 5):
+        track_index = random.randint(0, len(track_list_dict) - 1)
+        artist_list.append(track_list_dict[track_index]['track']['artists'][0]['id'])
+    return sp.recommendations(seed_tracks=track_list, seed_artists=artist_list)
 
 
 def _convert_miliseconds_to_seconds(miliseconds):
@@ -251,12 +255,12 @@ def _reset_listener_votes(track):
 
 # Engine that manages the selection of tracks
 def playlist_manager():
+    first_pass = True
     while True:
         if is_running:
             global token
             token = util.prompt_for_user_token(username, oauth_scope, client_id, client_secret, oauth_redirect)
             sp = spotipy.Spotify(auth=token)
-            length_of_song = 120
 
             if request_list and taking_requests:
                 song_to_play = request_list.pop()
@@ -276,7 +280,10 @@ def playlist_manager():
                 length_of_song = _convert_miliseconds_to_seconds(track_to_add['duration_ms'])
                 sp.user_playlist_add_tracks(username, playlist, [track_to_add['id']])
                 logging.log(level=logging.INFO, msg="Added track: " + track_to_add['name'] + " from recommendations")
-            time.sleep(length_of_song - 5)  # 5 seconds of buffer
+            if not first_pass:
+                time.sleep(20)  # keep time in sync
+            time.sleep(length_of_song - 20)  # pick a new track when the last one is 1/4 over
+            first_pass = False
 
 
 playlist_manager_thread = threading.Thread(target=playlist_manager)
