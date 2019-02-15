@@ -53,6 +53,7 @@ class Guest:
     def __init__(self, key):
         self.key = key
         self.requests = 0
+        logger.info("New guest created with key {}".format(key))
 
     def __str__(self):
         return self.key
@@ -219,6 +220,11 @@ class DJ:
         # create the Track object if it doesn't exist
         if not track_id in self.track_map:
             self.track_map[track_id] = Track(track_id)
+        track = self.track_map[track_id]
+
+        # block the vote if the guest has already requested the track more than half of the total votes
+        if track.requests.get(guest.key, 0) > 0.5 * track.votes:
+            raise PartyFoul("Guest {} is not allowed to vote because they have already voted for this track {} times.".format(guest.key, track.requests.get(guest.key, 0)))
 
         # vote for the track
         self.track_map[track_id].vote(guest)
@@ -253,15 +259,20 @@ class Bouncer:
 
 class PercentBouncer(Bouncer):
 
+    # each quest may contribute GRACE songs with no possibility of being
+    # bounced
+    GRACE = 5
+    # each guest may contribute up to 50 percent of the votes after their grace
+    # period
     THRESHOLD = 0.5
 
     def request(self, guest_key, title, artist):
         guest = self.find_guest(guest_key)
 
         # check if the guest is "over the legal limit"
-        percent_of_total_requests = guest.requests / max(self.total_requests, 10)
-        if percent_of_total_requests > self.THRESHOLD:
-            raise PartyFoul("Guest {} is over the limit.".format(guest_key))
+        if guest.requests >= self.GRACE and guest.requests / \
+                max(self.total_requests, 1) > self.THRESHOLD:
+            raise PartyFoul("Guest {} is over the limit.".format(guest.key))
 
         # pass the request to the DJ
         self.party.dj.request(guest, title, artist)

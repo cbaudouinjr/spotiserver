@@ -4,7 +4,7 @@ import configparser
 import threading
 from . import party
 from . import server
-import spotipy
+import spotipy.oauth2
 
 def validate_config(config):
     assert isinstance(config, dict)
