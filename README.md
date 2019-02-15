@@ -81,6 +81,31 @@ Run:
 ./env/bin/python3 main.py
 ```
 
+## Usage
+
+Once you have started the application using the steps above, a server will be
+started (on port 5000 by default).
+
+### Admin panel
+
+Visit http://localhost:5000/webapp in your browser.
+
+### API
+
+#### Request Track
+
+Send the request (where UUID uniquely identifies a party guest):
+
+```bash
+curl -X GET 'http://localhost:5000/?listener=UUID&track=rockstar\&artist=post+malone'
+```
+
+Expected Response Body:
+
+```
+{"message": "Added request", "ok": true}
+```
+
 ## Development
 
 All development work will live on the develop branch. Spotiserver is currently
