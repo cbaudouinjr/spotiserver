@@ -24,7 +24,7 @@ formatted using [Tom's Obvious, Minimal Language][toml].
 You will need a client id and client secret from Spotify, which you can
 retrieve from their [developer dashboard][spotify].
 
-## Setup
+## Setup and Execution
 
 Before continuing, make sure you have [Python 3][python] and `pip3` installed.
 
@@ -46,6 +46,12 @@ Install dependencies for the current user only:
 python3 -m pip install --user -r requirements.txt
 ```
 
+Then run:
+
+```bash
+python3 main.py
+```
+
 ### Option 2: Isolated Python Environment (virtualenv)
 
 *All commands in this section should be run in the root directory of this
@@ -63,30 +69,16 @@ Create environment (in env directory) that uses Python 3:
 virtualenv -p python3 env
 ```
 
-Run the following to enter the created environment:
+Install requirements:
 
 ```bash
-source env/bin/activate
+./env/bin/pip install -r requirements.txt
 ```
 
-Now, you can proceed with Option 1 without worrying about package conflicts.
-
-### Option 3: Pipenv
-
-[Pipenv][pipenv] combines both `virtualenv` and `pip` into a single tool.
-However, it is still fairly new and as a result, not recommended unless you
-know what you are doing.
-
-*All commands in this section should be run in the root directory of this
-project*
+Run:
 
 ```bash
-# install pipenv
-python3 -m pip install --user pipenv
-# create environment
-pipenv install -r requirements.txt
-# enter the environment
-pipenv shell
+./env/bin/python3 main.py
 ```
 
 ## Development
@@ -94,6 +86,7 @@ pipenv shell
 All development work will live on the develop branch. Spotiserver is currently
 in the early stages of development and when ready will be merged into master.
 
-
+[pyenv]: https://github.com/pyenv/pyenv
+[python]: https://www.python.org/
 [spotify]: https://developer.spotify.com/dashboard/
 [toml]: https://github.com/toml-lang/toml
