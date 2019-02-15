@@ -1,6 +1,5 @@
 #!/usr/bin/env false
 import logging
-import spotipy
 from flask import Flask, request, Response, json, redirect
 from .party import PartyFoul
 

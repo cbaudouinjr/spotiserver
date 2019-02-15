@@ -1,15 +1,11 @@
 #!/usr/bin/env false
 import datetime
 import logging
-import configparser
 import spotipy
-import itertools
 import threading
 import time
 import random
 import heapq
-from heapq import *
-from spotipy import util
 
 logger = logging.getLogger(__name__)
 

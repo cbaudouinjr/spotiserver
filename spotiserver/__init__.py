@@ -5,7 +5,6 @@ import threading
 from . import party
 from . import server
 import spotipy
-from spotipy import util
 
 def validate_config(config):
     assert isinstance(config, dict)
