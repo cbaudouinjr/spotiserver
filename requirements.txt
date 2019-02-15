@@ -1,0 +1,4 @@
+coloredlogs==10.0
+Flask==1.0.2
+requests==2.21.0
+spotipy==2.4.4
