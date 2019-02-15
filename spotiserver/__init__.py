@@ -30,11 +30,6 @@ def main():
     fyre = party.Party()
     fyre.bouncer = party.PercentBouncer(fyre)
     fyre.config = config
-    fyre.dj = party.DJ(fyre)
-    fyre.dj.client_id = client_id
-    fyre.dj.username = username
-    fyre.dj.playlist = playlist
-    fyre.dj.block_explicit = block_explicit
 
     fyre.sp_oauth = spotipy.oauth2.SpotifyOAuth(
         client_id=config['SPOTIFY']['CLIENT_ID'],
@@ -46,7 +41,10 @@ def main():
         proxies=None
     )
 
-    print(fyre.sp_oauth.get_cached_token())
+    fyre.dj = party.DJ(fyre)
+    fyre.dj.username = username
+    fyre.dj.playlist = playlist
+    fyre.dj.block_explicit = block_explicit
 
     # tell the DJ to start mixing tracks
     threading.Thread(target=fyre.dj.mix).start()

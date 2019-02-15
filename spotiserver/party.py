@@ -13,8 +13,6 @@ from spotipy import util
 
 logger = logging.getLogger(__name__)
 
-CYCLE_TIME = 10
-
 class PartyFoul(Exception):
     pass
 
@@ -86,9 +84,51 @@ class DJ:
         if 'expires_at' in token_json:
             logger.warn("Access token expires at {} UTC.".format(datetime.datetime.utcfromtimestamp(token_json['expires_at']).isoformat()))
         token = token_json['access_token']
-        self._sp = spotipy.Spotify(auth=token)
+        self._sp = spotipy.client.Spotify(auth=token)
         return self._sp
 
+    def remaining_playback(self):
+        """
+        Check how much time is remaining until the current track is done
+
+        :return: seconds left in track, track id
+        """
+        playback = self.sp._get("me/player")
+
+        if not playback:
+            logger.error("Attempt to retrieve playback information from Spotify failed. This usually means that nothing is being played.")
+            raise Exception
+
+        if not playback.get("context", None):
+            logger.error("The party host is not currently listening to a playlist. Please play the designated playlist.")
+            raise Exception
+
+        # check that the playback is as expected
+        if playback['context']['type'] != 'playlist' or \
+                playback['context']['uri'].split(':')[-1] != self.party.config['SPOTIFY']['SPOTIFY_PLAYLIST_ID']:
+            logger.error("The spotify playback for the hosting user is not the designated playlist, {}.".format(playback['context']['href']))
+            raise Exception
+
+        # playback is correct
+        logger.info("The party host is playing the correct playlist. All is well.")
+
+        # calculate the remaining ms in the track
+        remaining_ms = playback['item']['duration_ms'] - playback['progress_ms']
+        logger.info("{}s left in current track".format(remaining_ms / 1000))
+        return remaining_ms / 1000, playback['item']['id']
+
+    def last_tracks(self, playlist_id, num=10):
+        """
+        Get the Spotify IDs of the last `num` tracks of the given playlist
+
+        :rtype: str
+        """
+        assert num > 0
+        tracks = self.sp.user_playlist_tracks(self.username, playlist_id=playlist_id, limit=num, offset=0)
+        total = tracks["total"]
+        if total > num:
+            tracks = self.sp.user_playlist_tracks(self.username, playlist_id=playlist_id, limit=num, offset=max(0, total-num))
+        return list(map(lambda t: t["track"]["id"], tracks["items"]))
 
     def recommend_tracks(self):
         """
@@ -144,9 +184,25 @@ class DJ:
         self.sp.user_playlist_add_tracks(self.username, self.playlist, [track_id])
 
     def mix(self):
+        self.pick_track()
+
         while True:
-            self.pick_track()
-            time.sleep(CYCLE_TIME)
+            try:
+                remaining_sec, track_id = self.remaining_playback()
+
+                # pick a new track if this is one of the last 5 tracks in the
+                # playlist
+                if track_id in self.last_tracks(self.playlist, num=5):
+                    self.pick_track()
+
+                # otherwise, sleep
+                else:
+                    logging.info("The current track is not one of the last 5 in the playlist; sleeping for {} seconds.".format(remaining_sec))
+                    time.sleep(remaining_sec)
+
+            except Exception:
+                logging.exception("DJ caught error while mixing; sleeping 5 seconds.")
+                time.sleep(5)
 
     def request(self, guest, title, artist=None):
         assert isinstance(guest, Guest)
