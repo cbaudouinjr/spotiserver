@@ -99,6 +99,10 @@ class DJ:
             logger.error("Attempt to retrieve playback information from Spotify failed. This usually means that nothing is being played.")
             raise Exception
 
+        if not playback.get("is_playing", False):
+            logger.error("The spotify playback for the hosting user is paused.")
+            raise Exception
+
         if not playback.get("context", None):
             logger.error("The party host is not currently listening to a playlist. Please play the designated playlist.")
             raise Exception
