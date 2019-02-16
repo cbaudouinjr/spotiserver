@@ -254,13 +254,13 @@ class DJ:
 
         # vote for the track
         self.track_map[track_id].vote(guest)
-        logger.info("Guest {} voted for track {}".format(guest, track_id))
+        logger.info("Guest {} voted for '{}' ({})".format(guest, requested_track['name'], requested_track['uri']))
 
         # check if the track can be added to the queue
         track = self.track_map[track_id]
         if track.requests.get(guest.key, 0) <= max(1, track.votes * 0.5):
             heapq.heappush(self.track_queue, track)
-            logger.info("Added track to queue: {}".format(track_id))
+            logger.info("Added '{}' ({}) to queue.".format(requested_track['name'], requested_track['uri']))
 
 class Bouncer:
 
