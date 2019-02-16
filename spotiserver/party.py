@@ -215,6 +215,7 @@ class DJ:
 
                 # otherwise, sleep
                 else:
+                    remaining_sec += 2 # sleep at least 2 seconds
                     logger.info("Status: {} tracks with votes; {} tracks enqueued to play".format(len(self.track_map), len(self.track_queue)))
                     logger.info("The current track is not one of the last 5 in the playlist; sleeping for {} seconds.".format(remaining_sec))
                     time.sleep(remaining_sec)
