@@ -59,6 +59,19 @@ class Guest:
         return self.key
 
 
+# class RefreshingSpotify(spotipy.client.Spotify):
+#     # def __init__(self, *args, **kwargs):
+#         assert isinstance(self.oauth, spotipy.oauth2.SpotifyOAuth)
+#     def _internal_call(self, method, url, payload, params):
+#         try:
+#             return self._internal_call(*args, **kwargs)
+#         except SpotifyException as e:
+#             if e.http_status == 401:
+#                 token_json = self.party.sp_oauth.get_cached_token()
+#                 return self._internal_call(*args, **kwargs)
+#             raise
+
+
 class DJ:
 
     def __init__(self, party):
@@ -165,7 +178,7 @@ class DJ:
         track_list = self.recommend_tracks()
         # filter out explicit tracks
         if self.block_explicit:
-            track_list = filter(lambda t: not t['explicit'], track_list)
+            track_list = list(filter(lambda t: not t['explicit'], track_list))
         # pick a random recommended track
         return random.choice(track_list)
 
