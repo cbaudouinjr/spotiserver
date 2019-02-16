@@ -257,9 +257,9 @@ class DJ:
         self.track_map[track_id].vote(guest)
         logger.info("Guest {} voted for '{}' ({})".format(guest, requested_track['name'], requested_track['uri']))
 
-        # check if the track can be added to the queue
-        track = self.track_map[track_id]
-        if track.requests.get(guest.key, 0) <= max(1, track.votes * 0.5):
+        # the track can be added to the queue if the guest does not request
+        # much or if the track has more than one vote
+        if track not in self.track_queue and (track.votes > 1 or guest.requests < 3):
             heapq.heappush(self.track_queue, track)
             logger.info("Added '{}' ({}) to queue.".format(requested_track['name'], requested_track['uri']))
 
