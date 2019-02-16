@@ -238,6 +238,10 @@ class DJ:
         requested_track = tracks_found_from_search.pop()
         track_id = requested_track['id']
 
+        # explicit track filtering
+        if self.block_explicit and requested_track['explicit']:
+            raise PartyFoul("Blocking '{}' ({}) for explicit content".format(requested_track['name'], requested_track['uri']))
+
         # create the Track object if it doesn't exist
         if not track_id in self.track_map:
             self.track_map[track_id] = Track(track_id)

@@ -45,6 +45,8 @@ def process_request():
             "message": str(e)
         }), status=404)
 
+    # success!
+    logger.info("Request for track {} by guest {} succeeded".format(track, listener))
     return Response(response=json.dumps({
         "ok": True,
         "message": "Added request"

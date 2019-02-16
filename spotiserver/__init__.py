@@ -24,7 +24,13 @@ def main():
     oauth_redirect = config['SPOTIFY']['OAUTH_REDIRECT']
     username = config['SPOTIFY']['SPOTIFY_USERNAME']
     playlist = config['SPOTIFY']['SPOTIFY_PLAYLIST_ID']
-    block_explicit = config['SPOTIFY']['BLOCK_EXPLICIT']
+
+    block_explicit = False
+    if config['SPOTIFY'].get('BLOCK_EXPLICIT', '').lower() in ['true', 'yes', 't']:
+        block_explicit = True
+        logging.info("Explicit track filter is turned on.")
+    else:
+        logging.warn("EXPLICIT TRACKS WILL NOT BE BLOCKED.")
 
     fyre = party.Party()
     fyre.bouncer = party.PercentBouncer(fyre)
