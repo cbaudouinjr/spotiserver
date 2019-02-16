@@ -68,18 +68,21 @@ class DJ:
         self.track_map = {}
         # queue of tracks that are about to play
         self.track_queue = []
+        self._expiration = 0
 
     @property
     def sp(self):
-        if isinstance(self._sp, spotipy.Spotify):
+        if isinstance(self._sp, spotipy.Spotify) and time.time() + 10 < self._expiration:
             return self._sp
         token_json = self.party.sp_oauth.get_cached_token()
         while not token_json:
             logger.error("DJ does not have a valid Spotify OAuth token!")
             token_json = self.party.sp_oauth.get_cached_token()
             time.sleep(10)
-        if 'expires_at' in token_json:
-            logger.warn("Access token expires at {} UTC.".format(datetime.datetime.utcfromtimestamp(token_json['expires_at']).isoformat()))
+
+        self._expiration = token_json['expires_at']
+        logger.warn("Access token expires at {} UTC.".format(datetime.datetime.utcfromtimestamp(token_json['expires_at']).isoformat()))
+
         token = token_json['access_token']
         self._sp = spotipy.client.Spotify(auth=token)
         return self._sp
