@@ -166,6 +166,7 @@ class DJ:
         # if the request queue is not empty, pick the song with the most votes
         if self.track_queue:
             track = heapq.heappop(self.track_queue)
+            track.requests = dict()
             logger.info('Added track to playlist: {} from party guests'.format(track))
             # TODO reset track votes to zero, update voters, and total votes
             return track.spotify_id
