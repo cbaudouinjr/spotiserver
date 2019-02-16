@@ -1,6 +1,8 @@
 # project-specific files
 config.ini
 .cache*
+*.sqlite
+*.sqlite3
 
 # byte-compiled / optimized / DLL files
 __pycache__/
