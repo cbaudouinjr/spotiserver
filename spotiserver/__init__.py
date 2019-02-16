@@ -50,4 +50,4 @@ def main():
 
     # start the Flask server to handle requests
     server.app.party = fyre
-    server.app.run()
+    server.app.run(host="0.0.0.0", port=5000)
