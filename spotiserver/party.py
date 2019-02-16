@@ -215,11 +215,12 @@ class DJ:
 
                 # otherwise, sleep
                 else:
-                    logging.info("The current track is not one of the last 5 in the playlist; sleeping for {} seconds.".format(remaining_sec))
+                    logger.info("Status: {} tracks with votes; {} tracks enqueued to play".format(len(self.track_map), len(self.track_queue)))
+                    logger.info("The current track is not one of the last 5 in the playlist; sleeping for {} seconds.".format(remaining_sec))
                     time.sleep(remaining_sec)
 
             except Exception:
-                logging.exception("DJ caught error while mixing; sleeping 5 seconds.")
+                logger.exception("DJ caught error while mixing; sleeping 5 seconds.")
                 time.sleep(5)
 
     def request(self, guest, title, artist=None):
