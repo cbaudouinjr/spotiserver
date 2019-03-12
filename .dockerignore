@@ -1,0 +1,28 @@
+# git files
+.git
+.gitignore
+
+# config files
+*.ini
+
+# database files
+sqlite3.db
+*.sqlite
+*.sqlite3
+
+# byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pyenv
+.python-version
+
+# environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/

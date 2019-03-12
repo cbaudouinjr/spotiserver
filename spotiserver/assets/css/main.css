@@ -1,0 +1,46 @@
+h1{
+  height: 25vh;
+  margin-bottom: 0px;
+}
+p{
+  margin-bottom: 0px;
+  height: 100%;
+}
+.title {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.login-box{
+  box-shadow: 0 2px 4px 0 rgba(192,192,192,0.50);
+  background: #EFEFEF;
+  border: 1px solid #979797;
+  border-radius: 10px;
+  height: 70vh;
+  max-height: 500px;
+  margin-bottom: 0px;
+}
+.login-column{
+  min-width: 250px;
+  max-width: 300px;
+}
+.button{
+  box-shadow: 0 2px 4px 0 rgba(192,192,192,0.50);
+  background: #1cb04a;
+  color: white;
+  font-weight: lighter;
+  border: 1px solid #979797;
+  border-radius: 10px;
+  border-color: white;
+  width: 90%;
+  height: 50px;
+  margin-left: 5%;
+  margin-bottom: 10%;
+}
+.slogan-row{
+  height: 30%;
+}
+.button-row{
+  height: 70%
+}

@@ -1,0 +1,25 @@
+# project-specific files
+config.ini
+.cache*
+*.sqlite
+*.sqlite3
+
+# byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pyenv
+.python-version
+
+# environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mac
+.DS_STORE
