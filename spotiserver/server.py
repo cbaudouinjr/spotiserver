@@ -1,11 +1,17 @@
 #!/usr/bin/env false
 import logging
-from flask import Flask, request, Response, json, redirect
+from flask import Flask, request, Response, json, redirect, render_template
+from flask_bootstrap import Bootstrap
 from .party import PartyFoul
 
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
+Bootstrap(app)
 
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/webapp')
 def webapp():
@@ -15,6 +21,7 @@ def webapp():
 @app.route('/auth')
 def auth():
     return redirect(app.party.sp_oauth.get_authorize_url())
+
 
 @app.route('/callback')
 def callback():
@@ -30,7 +37,8 @@ def callback():
         "message": "Successfully authenticated"
     }), status=200)
 
-@app.route('/')
+
+@app.route('/request')
 def process_request():
     listener = request.args['listener']
     track = request.args['track']
@@ -39,7 +47,7 @@ def process_request():
     try:
         app.party.bouncer.request(listener, track, artist)
     except PartyFoul as e:
-        logger.warn(str(e))
+        logger.warning(str(e))
         return Response(response=json.dumps({
             "ok": False,
             "message": str(e)

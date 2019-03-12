@@ -6,6 +6,7 @@ from . import party
 from . import server
 import spotipy.oauth2
 
+
 def validate_config(config):
     assert isinstance(config, dict)
     assert 'SPOTIFY' in config
@@ -17,7 +18,7 @@ def main():
     coloredlogs.install(level=logging.INFO)
 
     config = configparser.RawConfigParser()
-    config.read('config.ini')
+    config.read('spotiserver.ini')
     client_id = config['SPOTIFY']['CLIENT_ID']
     client_secret = config['SPOTIFY']['CLIENT_SECRET']
     oauth_scope = config['SPOTIFY']['OAUTH_SCOPE']
@@ -30,7 +31,7 @@ def main():
         block_explicit = True
         logging.info("Explicit track filter is turned on.")
     else:
-        logging.warn("EXPLICIT TRACKS WILL NOT BE BLOCKED.")
+        logging.warning("EXPLICIT TRACKS WILL NOT BE BLOCKED.")
 
     fyre = party.Party()
     fyre.bouncer = party.PercentBouncer(fyre)
