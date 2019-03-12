@@ -107,9 +107,6 @@ Expected Response Body:
 ```
 
 ## Development
-<<<<<<< HEAD
-All development work will live branched off the develop branch. Any new feature should be created on it's own branch with a PR submitted to develop for review. Spotiserver is currently in the early stages of development and when ready will be merged into master.
-=======
 
 All development work will live on the develop branch. Spotiserver is currently
 in the early stages of development and when ready will be merged into master.
@@ -118,4 +115,3 @@ in the early stages of development and when ready will be merged into master.
 [python]: https://www.python.org/
 [spotify]: https://developer.spotify.com/dashboard/
 [toml]: https://github.com/toml-lang/toml
->>>>>>> feature-oo
