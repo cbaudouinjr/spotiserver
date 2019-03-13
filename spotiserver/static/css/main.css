@@ -44,3 +44,7 @@ p{
 .button-row{
   height: 70%
 }
+.info-message-row{
+  height: 75vh;
+  background: red;
+}
